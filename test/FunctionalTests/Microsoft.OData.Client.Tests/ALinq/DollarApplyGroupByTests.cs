@@ -1023,6 +1023,24 @@ namespace Microsoft.OData.Client.Tests.ALinq
             Assert.Equal(2, aggregateResult.Length);
         }
 
+        [Fact]
+        public void GroupByResultSelector_OnFilteredInputSet_ExpressionTranslatedToExpectedUri()
+        {
+            // Arrange
+            var queryable = this.dsContext.CreateQuery<Sale>(salesEntitySetName);
+
+            var query = queryable.Where(d => d.CurrencyCode.Equals("USD"))
+                .GroupBy(d1 => new { d1.Product.Color }, (d1, d2) => new
+                {
+                    ProductAvgTaxRate = d2.Average(d3 => d3.Product.TaxRate)
+                });
+
+            // Act & Assert
+            var expectedAggregateUri = $"{serviceUri}/{salesEntitySetName}?$apply=filter(CurrencyCode eq 'USD')" +
+                $"/groupby((Product/Color),aggregate(Product/TaxRate with average as ProductAvgTaxRate))";
+            Assert.Equal(expectedAggregateUri, query.ToString());
+        }
+
         #region Mock Aggregation Responses
 
         private void MockGroupBy_Sum_ByConstant()

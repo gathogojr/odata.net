@@ -208,10 +208,7 @@ namespace Microsoft.OData.Client
 
                 if (expressionMap.TryGetValue(methodCallExpr, out memberInfo))
                 {
-                    EnsureApplyInitialized(input);
-                    Debug.Assert(input.Apply != null, "input.Apply != null");
-
-                    this.input.Apply.Aggregations.Add(new ApplyQueryOptionExpression.Aggregation(selector, aggregationMethod, memberInfo.Name));
+                    this.input.AddAggregation(selector, aggregationMethod, memberInfo.Name);
                 }
             }
         }

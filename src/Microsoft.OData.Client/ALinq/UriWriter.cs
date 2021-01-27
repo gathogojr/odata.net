@@ -597,33 +597,38 @@ namespace Microsoft.OData.Client
                 return;
             }
 
+            string applyExpression = string.Empty;
             string aggregateTransformation = string.Empty;
+
+            // E.g. filter(Amount gt 1)
+            string filterTransformation = ConstructFilterTransformation(applyQueryOptionExpr);
+            if (!string.IsNullOrEmpty(filterTransformation))
+            {
+                applyExpression = filterTransformation + "/";
+            }
+
 
             if (applyQueryOptionExpr.Aggregations.Count > 0)
             {
                 // E.g. aggregate(Prop with sum as SumProp, Prop with average as AverageProp)
                 aggregateTransformation = ConstructAggregateTransformation(applyQueryOptionExpr.Aggregations);
-
-                if (applyQueryOptionExpr.GroupingExpressions.Count == 0)
-                {
-                    // E.g. filter(Amount gt 1)
-                    string filterTransformation = ConstructFilterTransformation(applyQueryOptionExpr);
-
-                    string applyExpression = string.IsNullOrWhiteSpace(filterTransformation) ? string.Empty : filterTransformation + "/";
-                    applyExpression += aggregateTransformation;
-
-                    // E.g. $apply=aggregate(Prop with sum as SumProp, Prop with average as AverageProp)
-                    // Or $apply=filter(Amount gt 1)/aggregate(Prop with sum as SumProp, Prop with average as AverageProp)
-                    this.AddAsCachedQueryOption(UriHelper.DOLLARSIGN + UriHelper.OPTIONAPPLY, applyExpression);
-                }
             }
 
-            if (applyQueryOptionExpr.GroupingExpressions.Count > 0)
+            if (applyQueryOptionExpr.GroupingExpressions.Count == 0)
+            {
+                applyExpression += aggregateTransformation;
+
+                // E.g. $apply=aggregate(Prop with sum as SumProp, Prop with average as AverageProp)
+                // Or $apply=filter(Amount gt 1)/aggregate(Prop with sum as SumProp, Prop with average as AverageProp)
+                this.AddAsCachedQueryOption(UriHelper.DOLLARSIGN + UriHelper.OPTIONAPPLY, applyExpression);
+            }
+            else
             {
                 // E.g (Prop1, Prop2, ..., PropN)
-                string groupingPropertiesExpr = ConstructGroupingPropertiesExpression(applyQueryOptionExpr.GroupingExpressions);
+                string groupingPropertiesExpr = ConstructGroupingExpression(applyQueryOptionExpr.GroupingExpressions);
 
                 StringBuilder groupByBuilder = new StringBuilder();
+                groupByBuilder.Append(applyExpression); // This should add filter transformation if any
                 groupByBuilder.Append(UriHelper.GROUPBY);
                 groupByBuilder.Append(UriHelper.LEFTPAREN);
                 groupByBuilder.Append(groupingPropertiesExpr);
@@ -636,6 +641,7 @@ namespace Microsoft.OData.Client
                 groupByBuilder.Append(UriHelper.RIGHTPAREN);
 
                 // E.g. $apply=groupby((Category),aggregate(Prop with sum as SumProp, Prop with average as AverageProp))
+                // Or $apply=filter(Amount gt 1)/groupby((Category),aggregate(Prop with sum as SumProp, Prop with average as AverageProp))
                 this.AddAsCachedQueryOption(UriHelper.DOLLARSIGN + UriHelper.OPTIONAPPLY, groupByBuilder.ToString());
             }
         }
@@ -726,32 +732,32 @@ namespace Microsoft.OData.Client
         }
 
         /// <summary>
-        /// Constructs a grouping properties expression.
+        /// Constructs a $apply grouping expression.
         /// E.g. (Prop1, Prop2, ..., PropN)
         /// </summary>
         /// <param name="groupingExpressions">List of grouping expressions.</param>
         /// <returns>The grouping properties expression.</returns>
-        private string ConstructGroupingPropertiesExpression(IList<Expression> groupingExpressions)
+        private string ConstructGroupingExpression(IList<Expression> groupingExpressions)
         {
-            StringBuilder groupingExpressionBuilder = new StringBuilder();
-            groupingExpressionBuilder.Append(UriHelper.LEFTPAREN);
-            int grpIdx = 0;
+            StringBuilder expressionBuilder = new StringBuilder();
+            expressionBuilder.Append(UriHelper.LEFTPAREN);
+            int i = 0;
 
             while (true)
             {
-                Expression groupingExpression = groupingExpressions[grpIdx];
-                groupingExpressionBuilder.Append(this.ExpressionToString(groupingExpression, /*inPath*/ false));
+                Expression groupingExpression = groupingExpressions[i];
+                expressionBuilder.Append(this.ExpressionToString(groupingExpression, /*inPath*/ false));
 
-                if (++grpIdx == groupingExpressions.Count)
+                if (++i == groupingExpressions.Count)
                 {
                     break;
                 }
-                groupingExpressionBuilder.Append(UriHelper.COMMA);
+                expressionBuilder.Append(UriHelper.COMMA);
             }
 
-            groupingExpressionBuilder.Append(UriHelper.RIGHTPAREN);
+            expressionBuilder.Append(UriHelper.RIGHTPAREN);
 
-            return groupingExpressionBuilder.ToString();
+            return expressionBuilder.ToString();
         }
 
         /// <summary>

@@ -831,23 +831,21 @@ namespace Microsoft.OData.Client
                 return aggregationExpr;
             }
 
-            resourceExpr.AddApply(selector, aggregationMethod);
+            resourceExpr.AddAggregation(selector, aggregationMethod);
 
             return resourceExpr;
         }
 
         /// <summary>
-        /// Analyzes a GroupBy(source, keySelector, resultSelector) method to 
+        /// Analyzes a GroupBy(source, keySelector, resultSelector) method expression to 
         /// determine whether it can be satisfied with $apply.
         /// </summary>
         /// <param name="methodCallExpr">Expression to analyze.</param>
-        /// <param name="expr">Resulting expression.</param>
-        /// <returns>true if <paramref name="methodCallExpr"/> represents a projection over a group.</returns>
-        private bool TryAnalyzeGroupBy(MethodCallExpression methodCallExpr, out Expression expr)
+        /// <returns><paramref name="methodCallExpr"/>, or a new resource set expression 
+        /// for the target resource in the analyzed expression.</returns>
+        private static Expression AnalyzeGroupBy(MethodCallExpression methodCallExpr)
         {
             Debug.Assert(methodCallExpr != null, "methodCallExpr != null");
-
-            expr = methodCallExpr;
 
             // Total 3 arguments expected
             // IQueryable<TSource>.GroupBy<TSource, TKey, TResult>(
@@ -855,46 +853,47 @@ namespace Microsoft.OData.Client
             //      Expression<Func<TKey, IEnumerable<TSource>, TResult>> resultSelector)
             if (methodCallExpr.Arguments.Count != 3)
             {
-                return false;
+                return methodCallExpr;
             }
 
             SequenceMethod sequenceMethod;
             if (!ReflectionUtil.TryIdentifySequenceMethod(methodCallExpr.Method, out sequenceMethod) ||
                 sequenceMethod != SequenceMethod.GroupByResultSelector)
             {
-                return false;
+                return methodCallExpr;
             }
 
-            ResourceSetExpression source = this.Visit(methodCallExpr.Arguments[0]) as ResourceSetExpression;
+            // We expect a resource expression as the first argument.
+            QueryableResourceExpression source = methodCallExpr.Arguments[0] as QueryableResourceExpression;
             if (source == null)
             {
-                return false;
+                return methodCallExpr;
             }
 
             LambdaExpression keySelector;
             // Key selector should be a single argument lambda
             if (!PatternRules.MatchSingleArgumentLambda(methodCallExpr.Arguments[1], out keySelector))
             {
-                return false;
+                return methodCallExpr;
             }
 
             LambdaExpression resultSelector;
             // Result selector should be a double argument lambda
             if (!PatternRules.MatchDoubleArgumentLambda(methodCallExpr.Arguments[2], out resultSelector))
             {
-                return false;
+                return methodCallExpr;
             }
 
             // Analyze resultSelector - Must be a simple instantiation.
             if (resultSelector.Body.NodeType != ExpressionType.MemberInit && resultSelector.Body.NodeType != ExpressionType.New)
             {
-                return false;
+                return methodCallExpr;
             }
 
             // Analyze keySelector
-            if (!AnalyzeGroupBySelector(source, keySelector))
+            if (!AnalyzeGroupByKeySelector(source, keySelector))
             {
-                return false;
+                return methodCallExpr;
             }
 
             // Analyze result selector expression
@@ -906,9 +905,7 @@ namespace Microsoft.OData.Client
 
             resourceExpr.Projection = new ProjectionQueryOptionExpression(projectionSelector.Parameters[0].Type, projectionSelector, new List<string>());
 
-            expr = resourceExpr;
-
-            return true;
+            return resourceExpr;
         }
 
         /// <summary>Ensures that there's a limit on the cardinality of a query.</summary>
@@ -1537,14 +1534,9 @@ namespace Microsoft.OData.Client
             SequenceMethod sequenceMethod;
             if (ReflectionUtil.TryIdentifySequenceMethod(mce.Method, out sequenceMethod))
             {
-                // GroupBy(source, resultSelector)
-                if (sequenceMethod == SequenceMethod.GroupByResultSelector && TryAnalyzeGroupBy(mce, out e))
-                {
-                    return e;
-                }
                 // The leaf projection can be one of Select(source, selector) or
                 // SelectMany(source, collectionSelector, resultSelector).
-                else if (sequenceMethod == SequenceMethod.Select ||
+                if (sequenceMethod == SequenceMethod.Select ||
                     sequenceMethod == SequenceMethod.SelectManyResultSelector)
                 {
                     if (this.AnalyzeProjection(mce, sequenceMethod, out e))
@@ -1625,9 +1617,31 @@ namespace Microsoft.OData.Client
                         case SequenceMethod.AverageNullableSingleSelector:
                             return AnalyzeAggregation(mce, AggregationMethod.Average);
                         case SequenceMethod.MinSelector:
+                        case SequenceMethod.MinIntSelector:
+                        case SequenceMethod.MinDoubleSelector:
+                        case SequenceMethod.MinDecimalSelector:
+                        case SequenceMethod.MinLongSelector:
+                        case SequenceMethod.MinSingleSelector:
+                        case SequenceMethod.MinNullableIntSelector:
+                        case SequenceMethod.MinNullableDoubleSelector:
+                        case SequenceMethod.MinNullableDecimalSelector:
+                        case SequenceMethod.MinNullableLongSelector:
+                        case SequenceMethod.MinNullableSingleSelector:
                             return AnalyzeAggregation(mce, AggregationMethod.Min);
                         case SequenceMethod.MaxSelector:
+                        case SequenceMethod.MaxIntSelector:
+                        case SequenceMethod.MaxDoubleSelector:
+                        case SequenceMethod.MaxDecimalSelector:
+                        case SequenceMethod.MaxLongSelector:
+                        case SequenceMethod.MaxSingleSelector:
+                        case SequenceMethod.MaxNullableIntSelector:
+                        case SequenceMethod.MaxNullableDoubleSelector:
+                        case SequenceMethod.MaxNullableDecimalSelector:
+                        case SequenceMethod.MaxNullableLongSelector:
+                        case SequenceMethod.MaxNullableSingleSelector:
                             return AnalyzeAggregation(mce, AggregationMethod.Max);
+                        case SequenceMethod.GroupByResultSelector:
+                            return AnalyzeGroupBy(mce);
                         default:
                             throw Error.MethodNotSupported(mce);
                     }
@@ -1709,7 +1723,7 @@ namespace Microsoft.OData.Client
         /// <param name="input">The input expression.</param>
         /// <param name="keySelector">Key selector expression to analyze.</param>
         /// <returns>true if analyzed successfully; false otherwise</returns>
-        private static bool AnalyzeGroupBySelector(QueryableResourceExpression input, LambdaExpression keySelector)
+        private static bool AnalyzeGroupByKeySelector(QueryableResourceExpression input, LambdaExpression keySelector)
         {
             Debug.Assert(input != null, "input != null");
             Debug.Assert(keySelector != null, "keySelector != null");
