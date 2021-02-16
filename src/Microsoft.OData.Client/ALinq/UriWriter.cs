@@ -736,28 +736,28 @@ namespace Microsoft.OData.Client
         /// E.g. (Prop1, Prop2, ..., PropN)
         /// </summary>
         /// <param name="groupingExpressions">List of grouping expressions.</param>
-        /// <returns>The grouping properties expression.</returns>
+        /// <returns>The grouping expression.</returns>
         private string ConstructGroupingExpression(IList<Expression> groupingExpressions)
         {
-            StringBuilder expressionBuilder = new StringBuilder();
-            expressionBuilder.Append(UriHelper.LEFTPAREN);
+            StringBuilder builder = new StringBuilder();
+            builder.Append(UriHelper.LEFTPAREN);
             int i = 0;
 
             while (true)
             {
                 Expression groupingExpression = groupingExpressions[i];
-                expressionBuilder.Append(this.ExpressionToString(groupingExpression, /*inPath*/ false));
+                builder.Append(this.ExpressionToString(groupingExpression, /*inPath*/ false));
 
                 if (++i == groupingExpressions.Count)
                 {
                     break;
                 }
-                expressionBuilder.Append(UriHelper.COMMA);
+                builder.Append(UriHelper.COMMA);
             }
 
-            expressionBuilder.Append(UriHelper.RIGHTPAREN);
+            builder.Append(UriHelper.RIGHTPAREN);
 
-            return expressionBuilder.ToString();
+            return builder.ToString();
         }
 
         /// <summary>
