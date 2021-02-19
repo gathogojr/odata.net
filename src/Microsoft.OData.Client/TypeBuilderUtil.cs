@@ -67,11 +67,14 @@ namespace Microsoft.OData.Client
         /// <param name="propertyType">The property type.</param>
         private static void CreateProperty(TypeBuilder typeBuilder, string propertyName, Type propertyType)
         {
+            // Define field, e.g. _Name
             FieldBuilder fieldBuilder = typeBuilder.DefineField(
                 "_" + propertyName, propertyType, FieldAttributes.Private);
+            // Define property, e.g. Name
             PropertyBuilder propertyBuilder = typeBuilder.DefineProperty(
                 propertyName, PropertyAttributes.HasDefault, propertyType, null);
 
+            // Define getter, e.g. get_Name()
             MethodBuilder getterBuilder = typeBuilder.DefineMethod(
                 "get_" + propertyName,
                 MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig,
@@ -83,23 +86,20 @@ namespace Microsoft.OData.Client
             getterIlGenerator.Emit(OpCodes.Ldfld, fieldBuilder);
             getterIlGenerator.Emit(OpCodes.Ret);
 
+            // Define setter, e.g. set_Name(value)
             MethodBuilder setterBuilder = typeBuilder.DefineMethod(
                 "set_" + propertyName,
                 MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig,
                 null,
                 new[] { propertyType });
             ILGenerator setterIlGenerator = setterBuilder.GetILGenerator();
-            Label modifyProperty = setterIlGenerator.DefineLabel();
-            Label exitSet = setterIlGenerator.DefineLabel();
 
-            setterIlGenerator.MarkLabel(modifyProperty);
             setterIlGenerator.Emit(OpCodes.Ldarg_0);
             setterIlGenerator.Emit(OpCodes.Ldarg_1);
             setterIlGenerator.Emit(OpCodes.Stfld, fieldBuilder);
-            setterIlGenerator.Emit(OpCodes.Nop);
-            setterIlGenerator.MarkLabel(exitSet);
             setterIlGenerator.Emit(OpCodes.Ret);
 
+            // Add getter and setter to the property
             propertyBuilder.SetGetMethod(getterBuilder);
             propertyBuilder.SetSetMethod(setterBuilder);
         }
