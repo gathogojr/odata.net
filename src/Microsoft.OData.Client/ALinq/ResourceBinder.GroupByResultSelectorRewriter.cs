@@ -305,8 +305,7 @@ namespace Microsoft.OData.Client
                             // Replace method call with a property access expression
                             return Expression.PropertyOrField(this.lambdaParameter, memberInfo.Name);
                         }
-                        // Something would have to be wrong for us to find ourselves here
-                        throw Error.NotSupported();
+                        throw Error.MethodNotSupported(m); // In the odd chance
                     default:
                         throw Error.MethodNotSupported(m);
                 };
@@ -626,8 +625,7 @@ namespace Microsoft.OData.Client
 
                                 return m;
                             }
-                            // Something would have to be wrong for us to find ourselves here
-                            throw Error.NotSupported();
+                            throw Error.MethodNotSupported(m); // In the odd chance
                         default:
                             throw Error.MethodNotSupported(m);
                     };

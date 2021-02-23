@@ -32,7 +32,7 @@ namespace Microsoft.OData.Client
             /// Creates an <see cref="GroupByKeySelectorAnalyzer"/> expression.
             /// </summary>
             /// <param name="source">The source expression.</param>
-            /// <param name="paramExpr">The parameter expression.</param>
+            /// <param name="paramExpr">The parameter of the key selector expression, e.g., d1 => new { d1.ProductId, d1.CustomerId }.</param>
             private GroupByKeySelectorAnalyzer(QueryableResourceExpression source, ParameterExpression paramExpr)
             {
                 this.input = source;
