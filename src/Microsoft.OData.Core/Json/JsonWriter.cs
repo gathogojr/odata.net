@@ -489,15 +489,11 @@ namespace Microsoft.OData.Json
         /// </summary>
         public void Dispose()
         {
-            if (this.ArrayPool != null)
+            if (this.ArrayPool != null && this.wrappedBuffer.Value != null)
             {
-                if (this.wrappedBuffer.Value != null)
-                {
-                    BufferUtils.ReturnToBuffer(this.ArrayPool, this.wrappedBuffer.Value);
-                    this.wrappedBuffer.Value = null;
-                }
-
+                BufferUtils.ReturnToBuffer(this.ArrayPool, this.wrappedBuffer.Value);
                 this.ArrayPool = null;
+                this.wrappedBuffer.Value = null;
             }
 
             if (this.binaryValueStream != null)
