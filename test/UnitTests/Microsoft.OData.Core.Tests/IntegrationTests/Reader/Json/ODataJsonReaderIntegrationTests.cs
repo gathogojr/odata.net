@@ -1096,7 +1096,7 @@ namespace Microsoft.OData.Tests.IntegrationTests.Reader.Json
                 ? "application/json;odata.metadata=minimal;IEEE754Compatible=true"
                 : "application/json;odata.metadata=minimal;IEEE754Compatible=false";
             message.SetHeader("Content-Type", contentType);
-            var readerSettings = new ODataMessageReaderSettings { EnableMessageStreamDisposal = true };
+            var readerSettings = new ODataMessageReaderSettings { EnableMessageStreamDisposal = true, PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver };
             using (var msgReader = isRequest ? new ODataMessageReader((IODataRequestMessage)message, readerSettings, userModel)
                                              : new ODataMessageReader((IODataResponseMessage)message, readerSettings, userModel))
             {

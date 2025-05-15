@@ -4,15 +4,17 @@
 // </copyright>
 //---------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml;
-using Microsoft.OData.Evaluation;
 using Microsoft.OData.Edm;
 using Microsoft.OData.Edm.Csdl;
 using Microsoft.OData.Edm.Validation;
 using Microsoft.OData.Edm.Vocabularies;
+using Microsoft.OData.Evaluation;
+using Microsoft.OData.Metadata;
 using Xunit;
 
 namespace Microsoft.OData.Tests
@@ -273,5 +275,31 @@ namespace Microsoft.OData.Tests
             Assert.Equal(enumValue1.TypeName, enumValue2.TypeName);
         }
         #endregion Util methods to AssertAreEqual ODataValues
+
+        public static readonly Func<object, string, IEdmTypeReference> PrimitiveTypeResolver = (value, typeName) =>
+        {
+            if (!string.IsNullOrEmpty(typeName))
+            {
+                if (typeName.StartsWith("#"))
+                {
+                    typeName = typeName.Substring(1);
+                }
+
+                TypeUtils.ParseQualifiedTypeName(typeName, out string namespaceName, out string name, out bool isCollection);
+
+                if (!string.IsNullOrEmpty(namespaceName) && string.IsNullOrEmpty(name))
+                {
+                    var typeReference = new EdmUntypedStructuredType(namespaceName, name).ToTypeReference(nullable: true);
+                    return isCollection ? new EdmCollectionType(typeReference).ToTypeReference(nullable: true) : typeReference;
+                }
+            }
+
+            if (value is bool)
+            {
+                return EdmCoreModel.Instance.GetBoolean(true);
+            }
+
+            return EdmCoreModel.Instance.GetUntyped();
+        };
     }
 }

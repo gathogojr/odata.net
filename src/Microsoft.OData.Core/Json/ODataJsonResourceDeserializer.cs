@@ -1588,7 +1588,6 @@ namespace Microsoft.OData.Json
                 payloadTypeName,
                 payloadTypeReference,
                 this.MessageReaderSettings.PrimitiveTypeResolver,
-                this.MessageReaderSettings.ReadUntypedAsString,
                 !this.MessageReaderSettings.ThrowIfTypeConflictsWithMetadata);
 
             bool isCollection = payloadTypeReference.IsCollection();
@@ -3812,7 +3811,6 @@ namespace Microsoft.OData.Json
                 payloadTypeName,
                 payloadTypeReference,
                 this.MessageReaderSettings.PrimitiveTypeResolver,
-                this.MessageReaderSettings.ReadUntypedAsString,
                 !this.MessageReaderSettings.ThrowIfTypeConflictsWithMetadata);
 
             bool isCollection = payloadTypeReference.IsCollection();

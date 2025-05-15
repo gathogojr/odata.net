@@ -32,7 +32,7 @@ namespace Microsoft.OData.Tests.Json
         public ODataJsonResourceDeserializerTests()
         {
             this.InitializeModel();
-            this.messageReaderSettings = new ODataMessageReaderSettings();
+            this.messageReaderSettings = new ODataMessageReaderSettings { PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver };
         }
 
         [Fact]

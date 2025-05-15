@@ -1686,7 +1686,11 @@ namespace Microsoft.OData.Tests.Json
             message.SetHeader("Content-Type", "application/json");
 
             var parameterReaderResult = new ParameterReaderResult();
-            using (var messageReader = new ODataMessageReader((IODataRequestMessage)message, null, this.model))
+            var messageReaderSettings = new ODataMessageReaderSettings
+            {
+                PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver
+            };
+            using (var messageReader = new ODataMessageReader((IODataRequestMessage)message, messageReaderSettings, this.model))
             {
                 var parameterReader = messageReader.CreateODataParameterReader(this.action);
 

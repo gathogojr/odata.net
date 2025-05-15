@@ -7,10 +7,11 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Resources;
 using System.Text;
 using Microsoft.OData;
-using Microsoft.OData.Json;
 using Microsoft.OData.Edm;
+using Microsoft.OData.Json;
 using Microsoft.OData.Tests;
 using Xunit;
 
@@ -21,7 +22,8 @@ namespace Microsoft.Test.OData.TDD.Tests.Reader.Json
         private ODataMessageReaderSettings readerSettings = new ODataMessageReaderSettings
         {
             ShouldIncludeAnnotation = (annotationName) => true,
-            Validations = ~ValidationKinds.ThrowOnUndeclaredPropertyForNonOpenType
+            Validations = ~ValidationKinds.ThrowOnUndeclaredPropertyForNonOpenType,
+            PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver
         };
 
         private ODataMessageWriterSettings writerSettings = new ODataMessageWriterSettings
@@ -913,6 +915,9 @@ namespace Microsoft.Test.OData.TDD.Tests.Reader.Json
                                                                           UndeclaredCollection1:[],""Address"":{""Street"":""No.999,Zixing Rd Minhang"",""UndeclaredStreet"":""No.10000000999,Zixing Rd Minhang""}}";
             ODataResource entry = null;
             ODataResource complex1 = null;
+            ODataNestedResourceInfo nestedResourceInfo = null;
+            ODataResourceSet resourceSet = null;
+
             this.ReadEntryPayload(
                 payload, 
                 this.serverOpenEntitySet, 
@@ -930,17 +935,35 @@ namespace Microsoft.Test.OData.TDD.Tests.Reader.Json
                             complex1 = (reader.Item as ODataResource);
                         }
                     }
+                    else if (reader.State == ODataReaderState.NestedResourceInfoStart)
+                    {
+                        if (nestedResourceInfo == null)
+                        {
+                            nestedResourceInfo = (reader.Item as ODataNestedResourceInfo);
+                        }
+                    }
+                    else if (reader.State == ODataReaderState.ResourceSetStart)
+                    {
+                        if (resourceSet == null)
+                        {
+                            resourceSet = (reader.Item as ODataResourceSet);
+                        }
+                    }
                 },
                 new ODataMessageReaderSettings
                 {
                     ShouldIncludeAnnotation = (annotationName) => true,
                     Validations = ~ValidationKinds.ThrowOnUndeclaredPropertyForNonOpenType,
                     EnableUntypedCollections = true,
+                    PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver
                 });
 
-            Assert.Equal(3, entry.Properties.Count());
-            var odataCollection = Assert.IsType<ODataCollectionValue>(Assert.IsType<ODataProperty>(entry.Properties.Single(s => string.Equals(s.Name, "UndeclaredCollection1", StringComparison.Ordinal))).Value);
-            Assert.False(odataCollection.Items.Any());
+            Assert.Equal(2, entry.Properties.Count());
+            // UndeclaredCollection1 is an untyped collection property - so it should read as an nested resource set
+            Assert.NotNull(nestedResourceInfo);
+            Assert.Equal("UndeclaredCollection1", nestedResourceInfo.Name);
+            Assert.True(nestedResourceInfo.IsCollection);
+            Assert.NotNull(resourceSet);
             Assert.Equal(@"""No.10000000999,Zixing Rd Minhang""",
                 Assert.IsType<ODataUntypedValue>(Assert.IsType<ODataProperty>(complex1.Properties.Single(s => string.Equals(s.Name, "UndeclaredStreet", StringComparison.Ordinal))).Value).RawValue);
         }
@@ -952,6 +975,9 @@ namespace Microsoft.Test.OData.TDD.Tests.Reader.Json
                                                                           UndeclaredCollection1:[],""Address"":{""Street"":""No.999,Zixing Rd Minhang"",""UndeclaredStreet"":""No.10000000999,Zixing Rd Minhang""}}";
             ODataResource entry = null;
             ODataResource complex1 = null;
+            ODataNestedResourceInfo nestedResourceInfo = null;
+            ODataResourceSet resourceSet = null;
+
             this.ReadEntryPayload(payload, this.serverOpenEntitySet, this.serverOpenEntityType, reader =>
             {
                 if (reader.State == ODataReaderState.ResourceStart)
@@ -965,11 +991,28 @@ namespace Microsoft.Test.OData.TDD.Tests.Reader.Json
                         complex1 = (reader.Item as ODataResource);
                     }
                 }
+                else if (reader.State == ODataReaderState.NestedResourceInfoStart)
+                {
+                    if (nestedResourceInfo == null)
+                    {
+                        nestedResourceInfo = (reader.Item as ODataNestedResourceInfo);
+                    }
+                }
+                else if (reader.State == ODataReaderState.ResourceSetStart)
+                {
+                    if (resourceSet == null)
+                    {
+                        resourceSet = (reader.Item as ODataResourceSet);
+                    }
+                }
             });
 
-            Assert.Equal(3, entry.Properties.Count());
-            Assert.Equal(@"[]",
-                Assert.IsType<ODataUntypedValue>(Assert.IsType<ODataProperty>(entry.Properties.Single(s => string.Equals(s.Name, "UndeclaredCollection1", StringComparison.Ordinal))).Value).RawValue);
+            Assert.Equal(2, entry.Properties.Count());
+            // UndeclaredCollection1 is an untyped collection property - so it should read as an nested resource set
+            Assert.NotNull(nestedResourceInfo);
+            Assert.Equal("UndeclaredCollection1", nestedResourceInfo.Name);
+            Assert.True(nestedResourceInfo.IsCollection);
+            Assert.NotNull(resourceSet);
             Assert.Equal(@"""No.10000000999,Zixing Rd Minhang""",
                 Assert.IsType<ODataUntypedValue>(Assert.IsType<ODataProperty>(complex1.Properties.Single(s => string.Equals(s.Name, "UndeclaredStreet", StringComparison.Ordinal))).Value).RawValue);
         }

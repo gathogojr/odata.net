@@ -400,7 +400,8 @@ namespace Microsoft.OData.Tests.ScenarioTests.Reader.Json
         {
             var settings = new ODataMessageReaderSettings()
             {
-                EnableReadingODataAnnotationWithoutPrefix = odataSimplified
+                EnableReadingODataAnnotationWithoutPrefix = odataSimplified,
+                PrimitiveTypeResolver = TestUtils.PrimitiveTypeResolver
             };
 
             var messageInfo = new ODataMessageInfo
