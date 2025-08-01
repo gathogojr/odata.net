@@ -1,0 +1,7 @@
+Microsoft.OData.UriParser.CustomUriLiteralParsers
+Microsoft.OData.UriParser.UriQueryExpressionParser.UriQueryExpressionParser(Microsoft.OData.Edm.IEdmModel model, int maxDepth) -> void
+static Microsoft.OData.UriParser.CustomUriLiteralParsers.AddCustomUriLiteralParser(this Microsoft.OData.Edm.IEdmModel model, Microsoft.OData.Edm.IEdmTypeReference edmTypeReference, Microsoft.OData.UriParser.IUriLiteralParser customUriLiteralParser) -> void
+static Microsoft.OData.UriParser.CustomUriLiteralParsers.AddCustomUriLiteralParser(this Microsoft.OData.Edm.IEdmModel model, Microsoft.OData.UriParser.IUriLiteralParser customUriLiteralParser) -> void
+static Microsoft.OData.UriParser.CustomUriLiteralParsers.RemoveCustomUriLiteralParser(this Microsoft.OData.Edm.IEdmModel model, Microsoft.OData.UriParser.IUriLiteralParser customUriLiteralParser) -> bool
+static Microsoft.OData.UriParser.CustomUriLiteralPrefixes.AddCustomLiteralPrefix(this Microsoft.OData.Edm.IEdmModel model, string literalPrefix, Microsoft.OData.Edm.IEdmTypeReference literalEdmTypeReference) -> void
+static Microsoft.OData.UriParser.CustomUriLiteralPrefixes.RemoveCustomLiteralPrefix(this Microsoft.OData.Edm.IEdmModel model, string literalPrefix) -> bool

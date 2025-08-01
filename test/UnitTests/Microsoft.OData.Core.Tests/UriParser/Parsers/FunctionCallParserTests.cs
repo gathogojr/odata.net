@@ -6,6 +6,7 @@
 
 using System;
 using System.Linq;
+using System.Linq.Expressions;
 using Microsoft.OData.Core;
 using Microsoft.OData.UriParser;
 using Xunit;
@@ -20,7 +21,8 @@ namespace Microsoft.OData.Tests.UriParser.Parsers
         [Fact]
         public void LexerCannotBeNull()
         {
-            UriQueryExpressionParser parser = new UriQueryExpressionParser(345, new ExpressionLexer("stuff", true, false));
+            ExpressionLexer lexer = new ExpressionLexer(HardCodedTestModel.TestModel, "stuff", true, false);
+            UriQueryExpressionParser parser = new UriQueryExpressionParser(HardCodedTestModel.TestModel, 345, lexer);
             Action createWithNullLexer = () => new FunctionCallParser(null, parser  /*resolveAlias*/);
             Assert.Throws<ArgumentNullException>("lexer", createWithNullLexer);
         }
@@ -28,7 +30,7 @@ namespace Microsoft.OData.Tests.UriParser.Parsers
         [Fact]
         public void ParserCannotBeNull()
         {
-            Action createWithNullLexer = () => new FunctionCallParser(new ExpressionLexer("foo", true, false), null /*resolveAlias*/);
+            Action createWithNullLexer = () => new FunctionCallParser(new ExpressionLexer(HardCodedTestModel.TestModel, "foo", true, false), null /*resolveAlias*/);
             Assert.Throws<ArgumentNullException>("parser", createWithNullLexer);
         }
 
@@ -138,8 +140,8 @@ namespace Microsoft.OData.Tests.UriParser.Parsers
 
         private static FunctionCallParser GetFunctionCallParser(string expression)
         {
-            ExpressionLexer lexer = new ExpressionLexer(expression, true, false);
-            UriQueryExpressionParser parser = new UriQueryExpressionParser(345, lexer);
+            ExpressionLexer lexer = new ExpressionLexer(HardCodedTestModel.TestModel, expression, true, false);
+            UriQueryExpressionParser parser = new UriQueryExpressionParser(HardCodedTestModel.TestModel, 345, lexer);
             return new FunctionCallParser(lexer, parser /*resolveAlias*/);
         }
     }
