@@ -17,6 +17,8 @@ namespace Microsoft.OData.Client
     using System.Linq;
     using System.Net;
     using System.Text;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.OData;
     using Microsoft.OData.Client.Metadata;
 
@@ -164,6 +166,44 @@ namespace Microsoft.OData.Client
                 try
                 {
                     this.batchResponseMessage = this.RequestInfo.GetSynchronousResponse(batchRequestMessage, false);
+                }
+                catch (DataServiceTransportException ex)
+                {
+                    InvalidOperationException exception = WebUtil.GetHttpWebResponse(ex, ref this.batchResponseMessage);
+
+                    // For non-async batch requests we rethrow the WebException.  This is shipped behavior.
+                    throw exception;
+                }
+                finally
+                {
+                    if (this.batchResponseMessage != null)
+                    {
+                        // For non-async batch requests we call the test hook to get the response stream but we cannot consume it
+                        // because we rethrow what we caught and the customer need to be able to read the response stream from the WebException.
+                        // Note that on the async batch code path we do consume the response stream and throw a DataServiceRequestException.
+                        this.responseStream = this.batchResponseMessage.GetStream();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Asynchronous batch request.
+        /// </summary>
+        /// <param name="cancellationToken">Optional cancellation token.</param>
+        /// <returns>A task that represents the asynchronous batch request operation.</returns>
+        internal async Task BatchRequestAsync(CancellationToken cancellationToken = default)
+        {
+            ODataRequestMessageWrapper batchRequestMessage = this.GenerateBatchRequest();
+
+            if (batchRequestMessage != null)
+            {
+                batchRequestMessage.SetRequestStream(batchRequestMessage.CachedRequestStream);
+
+                try
+                {
+                    this.batchResponseMessage = await this.RequestInfo.GetResponseAsync(batchRequestMessage, false, cancellationToken)
+                        .ConfigureAwait(false);
                 }
                 catch (DataServiceTransportException ex)
                 {

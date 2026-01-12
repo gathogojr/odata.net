@@ -9,12 +9,12 @@ namespace Microsoft.OData.Client
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Diagnostics.CodeAnalysis;
     using System.Globalization;
     using System.IO;
     using System.Linq;
     using System.Text;
-    using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.OData;
 
     /// <summary>
@@ -302,6 +302,19 @@ namespace Microsoft.OData.Client
         }
 
         /// <summary>
+        /// Asynchronously gets the response from the request.
+        /// </summary>
+        /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the response message.</returns>
+        internal Task<IODataResponseMessage> GetResponseAsync(CancellationToken cancellationToken = default)
+        {
+#if DEBUG
+            this.ValidateHeaders();
+#endif
+            return this.requestMessage.GetResponseAsync(cancellationToken);
+        }
+
+        /// <summary>
         /// Sets the content length header for the given request message.
         /// </summary>
         internal void SetContentLengthHeader()
@@ -522,7 +535,11 @@ namespace Microsoft.OData.Client
             {
                 get
                 {
-                    this.cachedRequestStream.Stream.Position = 0;
+                    if (this.cachedRequestStream != null)
+                    {
+                        this.cachedRequestStream.Stream.Position = 0;
+                    }
+
                     return this.cachedRequestStream;
                 }
             }

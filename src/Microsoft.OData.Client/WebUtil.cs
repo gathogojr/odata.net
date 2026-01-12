@@ -15,6 +15,8 @@ namespace Microsoft.OData.Client
     using System.Linq;
     using System.Reflection;
     using System.Runtime.CompilerServices;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Microsoft.OData;
     using Microsoft.OData.Client.Metadata;
 
@@ -75,7 +77,7 @@ namespace Microsoft.OData.Client
             byte[] buffer = refBuffer;
             if (buffer == null)
             {
-                refBuffer = buffer = new byte[1000];
+                refBuffer = buffer = new byte[1000]; // Why does this use 1000 instead of DefaultBufferSizeForStreamCopy?
             }
 
             int count;
@@ -86,6 +88,40 @@ namespace Microsoft.OData.Client
             }
 
             return total;
+        }
+
+        /// <summary>
+        /// Asynchronously copies data from one stream to another.
+        /// </summary>
+        /// <param name="input">Input stream to read from.</param>
+        /// <param name="output">Output stream to write to.</param>
+        /// <param name="buffer">Buffer to use for copying. If null, a new buffer will be created.</param>
+        /// <param name="cancellationToken">Cancellation token to observe.</param>
+        /// <returns>
+        /// A task that represents the asynchronous copy operation.
+        /// The task result contains a tuple with:
+        /// - BytesCopied: The total number of bytes copied
+        /// - Buffer: The buffer used for copying (either the provided buffer or a newly created one)
+        /// </returns>
+        internal static async Task<(long BytesCopied, byte[] Buffer)> CopyStreamAsync(Stream input, Stream output, byte[] buffer, CancellationToken cancellationToken = default)
+        {
+            Debug.Assert(input != null, "null input stream");
+            Debug.Assert(output != null, "null output stream");
+
+            long total = 0;
+            if (buffer == null)
+            {
+                buffer = new byte[1000]; // 1000 used to mirror synchronous version... Why not DefaultBufferSizeForStreamCopy?
+            }
+
+            int count;
+            while (input.CanRead && ((count = await input.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0))
+            {
+                await output.WriteAsync(buffer, 0, count, cancellationToken).ConfigureAwait(false);
+                total += count;
+            }
+
+            return (total, buffer);
         }
 
         /// <summary>get response object from possible WebException</summary>
